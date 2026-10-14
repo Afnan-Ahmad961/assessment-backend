@@ -1,0 +1,13 @@
+node_modules
+dist
+
+# Generated Prisma client (rebuilt by `prisma generate` on install)
+src/generated
+
+# Environment variables
+.env
+!.env.example
+
+# Logs and OS files
+*.log
+.DS_Store

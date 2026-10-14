@@ -1,0 +1,23 @@
+# Local development services. Only Postgres for now; the API runs on the host with `npm run dev`.
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: assessment-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-appointments}
+    ports:
+      # Bound to localhost only, on 5434 to avoid clashing with other local Postgres instances.
+      - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:
