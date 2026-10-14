@@ -8,6 +8,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "UNPROCESSABLE"
   | "PAYLOAD_TOO_LARGE"
   | "RATE_LIMITED"
   | "INTERNAL_ERROR"
@@ -46,5 +47,10 @@ export class HttpError extends Error {
 
   static conflict(message: string) {
     return new HttpError(409, "CONFLICT", message);
+  }
+
+  /** Well-formed request that breaks a business rule, e.g. booking outside opening hours. */
+  static unprocessable(message: string) {
+    return new HttpError(422, "UNPROCESSABLE", message);
   }
 }

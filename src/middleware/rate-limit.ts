@@ -12,7 +12,6 @@ function createLimiter(limit: number, message: string) {
     limit,
     standardHeaders: "draft-8",
     legacyHeaders: false,
-    // Route through the error handler so 429s use the same JSON shape as every other error.
     handler: (_req, _res, next) => next(new HttpError(429, "RATE_LIMITED", message)),
   });
 }
