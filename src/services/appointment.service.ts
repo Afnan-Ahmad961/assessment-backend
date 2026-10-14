@@ -84,6 +84,11 @@ export async function getAppointment(userId: string, id: string): Promise<Appoin
   return appointment;
 }
 
+/** The appointment booked from a chat session, if any. */
+export function findAppointmentForSession(chatSessionId: string): Promise<AppointmentView | null> {
+  return prisma.appointment.findFirst({ where: { chatSessionId }, select: appointmentSelect });
+}
+
 // 23P01 is Postgres's exclusion_violation; the only exclusion constraint on appointments is
 // appointments_no_overlap. Prisma passes the original Postgres error through in `meta`.
 const POSTGRES_EXCLUSION_VIOLATION = "23P01";

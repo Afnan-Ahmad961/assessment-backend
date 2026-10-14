@@ -22,6 +22,9 @@ const envSchema = z.object({
     .string()
     .default("UTC")
     .refine((tz) => Intl.supportedValuesOf("timeZone").includes(tz) || tz === "UTC", "Unknown timezone"),
+
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+  GEMINI_MODEL: z.string().default("gemini-3.1-flash-lite"),
 });
 
 const parsed = envSchema.safeParse(process.env);

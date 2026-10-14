@@ -11,6 +11,8 @@ export const createAppointmentBodySchema = z.object({
     .max(1000, "Notes must be at most 1000 characters")
     .optional()
     .transform((value) => value || undefined),
+  /** Set when the form was opened from a chat; the booking is linked to it and the chat closes. */
+  chatSessionId: z.uuid("Invalid conversation id").optional(),
 });
 
 export const listAppointmentsQuerySchema = z.object({

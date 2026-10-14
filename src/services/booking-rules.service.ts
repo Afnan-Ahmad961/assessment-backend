@@ -33,6 +33,13 @@ export function getSlotProblem(startsAt: Date, durationMinutes: number, now: Dat
   return null;
 }
 
+/** "Monday-Friday, 09:00-17:00", for prompts and messages. */
+export function describeOpeningHours(): string {
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const days = openDays.map((day) => dayNames[day]).join(", ");
+  return `${days}, ${formatMinute(opensAtMinute)}-${formatMinute(closesAtMinute)}`;
+}
+
 function formatMinute(minuteOfDay: number): string {
   const hours = String(Math.floor(minuteOfDay / 60)).padStart(2, "0");
   const minutes = String(minuteOfDay % 60).padStart(2, "0");

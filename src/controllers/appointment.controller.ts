@@ -4,15 +4,18 @@ import type { Response } from "express";
 import { getAuth } from "../middleware/require-auth.js";
 import type { AppointmentParams, CreateAppointmentBody, ListAppointmentsQuery } from "../schemas/appointment.schema.js";
 import * as appointmentService from "../services/appointment.service.js";
+import * as chatTurnService from "../services/chat-turn.service.js";
 import type { ValidatedRequest } from "../types/http.js";
 
 export async function create(req: ValidatedRequest<CreateAppointmentBody>, res: Response) {
   // Bookings through this endpoint come from the form; the chat flow creates its own with source CHAT.
-  const appointment = await appointmentService.createAppointment({
-    userId: getAuth(req).userId,
-    ...req.body,
-    source: "FORM",
-  });
+  const { chatSessionId, ...input } = req.body;
+  const userId = getAuth(req).userId;
+
+  const appointment = chatSessionId
+    ? await chatTurnService.bookFromForm(userId, { ...input, chatSessionId })
+    : await appointmentService.createAppointment({ userId, ...input, source: "FORM" });
+
   res.status(201).json({ data: { appointment } });
 }
 
