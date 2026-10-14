@@ -24,7 +24,7 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
   next();
 };
 
-export function getAuth(req: Request): NonNullable<Request["auth"]> {
+export function getAuth(req: Pick<Request, "auth">): NonNullable<Request["auth"]> {
   if (!req.auth) {
     // Only reachable if a route forgot to mount requireAuth.
     throw HttpError.unauthorized();

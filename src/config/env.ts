@@ -16,6 +16,12 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
+  // IANA name, e.g. "Europe/London". Business hours in config/booking.ts are in this timezone.
+  BUSINESS_TIMEZONE: z
+    .string()
+    .default("UTC")
+    .refine((tz) => Intl.supportedValuesOf("timeZone").includes(tz) || tz === "UTC", "Unknown timezone"),
 });
 
 const parsed = envSchema.safeParse(process.env);
