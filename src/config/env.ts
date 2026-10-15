@@ -10,6 +10,12 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+  // Shared with the Next.js BFF. Proves an X-Client-IP header really came from the BFF, so rate
+  // limits apply per user IP instead of to all of Vercel's servers at once.
+  BFF_SHARED_SECRET: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().min(32, "BFF_SHARED_SECRET must be at least 32 characters").optional(),
+  ),
 
   DATABASE_URL: z.url(),
 

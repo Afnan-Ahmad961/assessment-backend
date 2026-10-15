@@ -85,7 +85,8 @@ model Appointment {
   id            String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
   userId        String            @map("user_id") @db.Uuid
   serviceId     String            @map("service_id") @db.Uuid
-  chatSessionId String?           @map("chat_session_id") @db.Uuid
+  // A conversation books at most one appointment (unique; NULLs for form bookings don't clash).
+  chatSessionId String?           @unique @map("chat_session_id") @db.Uuid
   startsAt      DateTime          @map("starts_at") @db.Timestamptz(3)
   endsAt        DateTime          @map("ends_at") @db.Timestamptz(3)
   status        AppointmentStatus @default(CONFIRMED)
@@ -101,7 +102,6 @@ model Appointment {
   // "My appointments", newest first.
   @@index([userId, startsAt(sort: Desc)])
   @@index([serviceId])
-  @@index([chatSessionId])
   @@map("appointments")
 }
 
@@ -127,12 +127,15 @@ model ChatSession {
   bookingDraft  Json              @default("{}") @map("booking_draft")
   // Consecutive user messages that added no booking detail; drives the "use the form" suggestion.
   stalledTurns  Int               @default(0) @map("stalled_turns")
+  // Optimistic lock: bumped by every turn. A turn only saves if the version is still the one it
+  // read, so two overlapping requests can't overwrite each other or both book.
+  version       Int               @default(0)
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages       ChatMessage[]
-  appointments   Appointment[]
+  appointment    Appointment?
   aiInteractions AiInteraction[]
 
   // "My recent conversations".

@@ -1,6 +1,7 @@
 // HTTP layer for appointments.
 import type { Response } from "express";
 
+import { bookingRules } from "../config/booking.js";
 import { getAuth } from "../middleware/require-auth.js";
 import type { AppointmentParams, CreateAppointmentBody, ListAppointmentsQuery } from "../schemas/appointment.schema.js";
 import * as appointmentService from "../services/appointment.service.js";
@@ -21,7 +22,8 @@ export async function create(req: ValidatedRequest<CreateAppointmentBody>, res: 
 
 export async function list(req: ValidatedRequest<unknown, ListAppointmentsQuery>, res: Response) {
   const appointments = await appointmentService.listAppointments(getAuth(req).userId, req.query.scope);
-  res.status(200).json({ data: { appointments } });
+  // The business timezone, so clients show times on the same clock the chat uses.
+  res.status(200).json({ data: { appointments, timeZone: bookingRules.timeZone } });
 }
 
 export async function getOne(req: ValidatedRequest<unknown, unknown, AppointmentParams>, res: Response) {

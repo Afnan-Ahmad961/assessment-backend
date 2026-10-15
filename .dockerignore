@@ -1,0 +1,10 @@
+# Keep the build context small and secrets out of the image.
+node_modules
+dist
+src/generated
+.env
+.env.*
+.git
+database
+*.log
+.DS_Store

@@ -2,7 +2,7 @@
 // creating an appointment, so the two can never disagree. Overlaps are checked separately, against
 // the database.
 import { bookingRules } from "../config/booking.js";
-import { addMinutes, toBusinessTime } from "../lib/business-time.js";
+import { addMinutes, formatClockMinute, toBusinessTime } from "../lib/business-time.js";
 
 const { openDays, opensAtMinute, closesAtMinute, slotStepMinutes, minNoticeMinutes, maxDaysAhead } = bookingRules;
 
@@ -15,11 +15,11 @@ export function getSlotProblem(startsAt: Date, durationMinutes: number, now: Dat
   }
 
   if (!start.isWholeMinute || start.minuteOfDay % slotStepMinutes !== 0) {
-    return `Appointments start every ${slotStepMinutes} minutes, e.g. 10:00, 10:15, 10:30.`;
+    return `Appointments start every ${slotStepMinutes} minutes, e.g. 10 am, 10:15 am or 10:30 am.`;
   }
 
   if (start.minuteOfDay < opensAtMinute || start.minuteOfDay + durationMinutes > closesAtMinute) {
-    return `Appointments must fit within opening hours, ${formatMinute(opensAtMinute)} to ${formatMinute(closesAtMinute)}.`;
+    return `Appointments must fit within opening hours, ${formatClockMinute(opensAtMinute)} to ${formatClockMinute(closesAtMinute)}.`;
   }
 
   if (startsAt < addMinutes(now, minNoticeMinutes)) {

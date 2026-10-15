@@ -21,7 +21,14 @@ export type DraftUpdates = {
 
 export type DraftEvaluation =
   | { status: "incomplete"; service: ServiceView | null }
-  | { status: "unavailable"; service: ServiceView; reason: string; alternatives: Date[] }
+  | {
+      status: "unavailable";
+      service: ServiceView;
+      reason: string;
+      alternatives: Date[];
+      /** The start the user asked for, when the problem is that specific time. */
+      requestedStart?: Date;
+    }
   | { status: "ready"; service: ServiceView; startsAt: Date };
 
 /** Applies new details on top of the draft. `null` means "not mentioned", so the old value stays. */
@@ -73,6 +80,7 @@ export async function evaluateDraft(draft: BookingDraft, now = new Date()): Prom
       slots.map((slot) => slot.startsAt),
       startsAt,
     ),
+    requestedStart: startsAt,
   };
 }
 

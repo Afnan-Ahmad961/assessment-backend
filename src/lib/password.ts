@@ -1,7 +1,8 @@
 // Password hashing with bcrypt.
 import bcrypt from "bcryptjs";
 
-const BCRYPT_COST = 8;
+// Cost 10 (~60-100 ms per hash): the common minimum for bcrypt, slow enough to resist brute force.
+const BCRYPT_COST = 10;
 
 export function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, BCRYPT_COST);

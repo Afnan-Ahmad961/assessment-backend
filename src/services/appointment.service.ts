@@ -31,7 +31,11 @@ export type CreateAppointmentInput = {
   chatSessionId?: string | undefined;
 };
 
-export async function createAppointment(input: CreateAppointmentInput): Promise<AppointmentView> {
+/** Pass `db` to create the appointment inside the caller's transaction. */
+export async function createAppointment(
+  input: CreateAppointmentInput,
+  db: Prisma.TransactionClient = prisma,
+): Promise<AppointmentView> {
   const service = await getActiveServiceOrThrow(input.serviceId);
 
   const problem = getSlotProblem(input.startsAt, service.durationMinutes, new Date());
@@ -40,7 +44,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
   }
 
   try {
-    return await prisma.appointment.create({
+    return await db.appointment.create({
       data: {
         userId: input.userId,
         serviceId: service.id,

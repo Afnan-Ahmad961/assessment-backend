@@ -1,6 +1,6 @@
 // Chat sessions and their messages: starting a conversation, reading it (including polling for new
 // messages), and the session shape returned to the client. A user has at most one ACTIVE session.
-import type { ChatMessageRole, ChatSession, Prisma } from "../generated/prisma/client.js";
+import type { ChatSession, Prisma } from "../generated/prisma/client.js";
 import { HttpError } from "../lib/http-error.js";
 import { prisma } from "../lib/prisma.js";
 import { parseBookingDraft } from "../schemas/booking-draft.schema.js";
@@ -66,7 +66,8 @@ export async function getSession(userId: string, sessionId: string, after?: Date
   const session = await getOwnedSession(userId, sessionId);
   const messages = await prisma.chatMessage.findMany({
     where: { sessionId, ...(after ? { createdAt: { gt: after } } : {}) },
-    orderBy: { createdAt: "asc" },
+    // UUIDv7 ids are time-ordered, so id breaks ties between messages saved in the same millisecond.
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: MAX_MESSAGES,
     select: messageSelect,
   });
@@ -94,19 +95,11 @@ export async function getActiveOwnedSession(userId: string, sessionId: string): 
 export async function getRecentMessages(sessionId: string, limit: number) {
   const latest = await prisma.chatMessage.findMany({
     where: { sessionId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit,
     select: { role: true, content: true },
   });
   return latest.reverse();
-}
-
-export function saveMessage(sessionId: string, role: ChatMessageRole, content: string): Promise<ChatMessageView> {
-  return prisma.$transaction(async (tx) => {
-    const message = await tx.chatMessage.create({ data: { sessionId, role, content }, select: messageSelect });
-    await tx.chatSession.update({ where: { id: sessionId }, data: { lastMessageAt: message.createdAt } });
-    return message;
-  });
 }
 
 /** Pass `evaluation` when the caller already has it, to skip re-checking availability. */
