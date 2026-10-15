@@ -25,13 +25,13 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  refreshTokens RefreshToken[]
-  appointments  Appointment[]
-  chatSessions  ChatSession[]
+  refreshTokens  RefreshToken[]
+  appointments   Appointment[]
+  chatSessions   ChatSession[]
+  aiInteractions AiInteraction[]
 
   @@map("users")
 }
-
 
 model RefreshToken {
   id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
@@ -85,7 +85,8 @@ model Appointment {
   id            String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
   userId        String            @map("user_id") @db.Uuid
   serviceId     String            @map("service_id") @db.Uuid
-  chatSessionId String?           @map("chat_session_id") @db.Uuid
+  // A conversation books at most one appointment (unique; NULLs for form bookings don't clash).
+  chatSessionId String?           @unique @map("chat_session_id") @db.Uuid
   startsAt      DateTime          @map("starts_at") @db.Timestamptz(3)
   endsAt        DateTime          @map("ends_at") @db.Timestamptz(3)
   status        AppointmentStatus @default(CONFIRMED)
@@ -101,7 +102,6 @@ model Appointment {
   // "My appointments", newest first.
   @@index([userId, startsAt(sort: Desc)])
   @@index([serviceId])
-  @@index([chatSessionId])
   @@map("appointments")
 }
 
@@ -123,12 +123,20 @@ model ChatSession {
   status        ChatSessionStatus @default(ACTIVE)
   // Denormalized so the session list can sort by recent activity without scanning messages.
   lastMessageAt DateTime?         @map("last_message_at") @db.Timestamptz(3)
+  // Booking details collected so far: { serviceId, date, time, notes }. Validated with Zod in the app.
+  bookingDraft  Json              @default("{}") @map("booking_draft")
+  // Consecutive user messages that added no booking detail; drives the "use the form" suggestion.
+  stalledTurns  Int               @default(0) @map("stalled_turns")
+  // Optimistic lock: bumped by every turn. A turn only saves if the version is still the one it
+  // read, so two overlapping requests can't overwrite each other or both book.
+  version       Int               @default(0)
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages     ChatMessage[]
-  appointments Appointment[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       ChatMessage[]
+  appointment    Appointment?
+  aiInteractions AiInteraction[]
 
   // "My recent conversations".
   @@index([userId, lastMessageAt(sort: Desc)])
@@ -154,4 +162,40 @@ model ChatMessage {
   // Loading a conversation in order, and polling for "messages after X".
   @@index([sessionId, createdAt])
   @@map("chat_messages")
+}
+
+// ---------------------------------------------------------------------------
+// AI
+// ---------------------------------------------------------------------------
+
+enum AiInteractionStatus {
+  SUCCESS
+  INVALID_OUTPUT
+  ERROR
+
+  @@map("ai_interaction_status")
+}
+
+// One row per call to the LLM, for debugging and analytics. Kept if the session or user is deleted.
+model AiInteraction {
+  id            String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  sessionId     String?             @map("session_id") @db.Uuid
+  userId        String?             @map("user_id") @db.Uuid
+  model         String              @db.VarChar(100)
+  promptVersion String              @map("prompt_version") @db.VarChar(50)
+  status        AiInteractionStatus
+  input         Json
+  output        Json?
+  errorMessage  String?             @map("error_message") @db.VarChar(1000)
+  inputTokens   Int?                @map("input_tokens")
+  outputTokens  Int?                @map("output_tokens")
+  latencyMs     Int                 @map("latency_ms")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  session ChatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId, createdAt])
+  @@index([createdAt])
+  @@map("ai_interactions")
 }

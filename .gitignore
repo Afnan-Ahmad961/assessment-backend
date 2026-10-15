@@ -4,9 +4,11 @@ dist
 # Generated Prisma client (rebuilt by `prisma generate` on install)
 src/generated
 
-# Environment variables
+# Environment variables (real values never go in git; the *.example files document them)
 .env
+.env.*
 !.env.example
+!.env.production.example
 
 # Logs and OS files
 *.log

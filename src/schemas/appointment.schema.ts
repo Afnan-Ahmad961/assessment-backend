@@ -3,7 +3,6 @@ import { z } from "zod";
 
 export const createAppointmentBodySchema = z.object({
   serviceId: z.uuid("Choose a service"),
-  // Must include a timezone offset ("2026-10-20T10:00:00Z" or "...+05:00") so it's an exact moment.
   startsAt: z.iso.datetime({ offset: true, message: "Enter a valid start time" }).transform((value) => new Date(value)),
   notes: z
     .string()
@@ -11,6 +10,8 @@ export const createAppointmentBodySchema = z.object({
     .max(1000, "Notes must be at most 1000 characters")
     .optional()
     .transform((value) => value || undefined),
+  /** Set when the form was opened from a chat; the booking is linked to it and the chat closes. */
+  chatSessionId: z.uuid("Invalid conversation id").optional(),
 });
 
 export const listAppointmentsQuerySchema = z.object({

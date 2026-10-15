@@ -31,7 +31,11 @@ export type CreateAppointmentInput = {
   chatSessionId?: string | undefined;
 };
 
-export async function createAppointment(input: CreateAppointmentInput): Promise<AppointmentView> {
+/** Pass `db` to create the appointment inside the caller's transaction. */
+export async function createAppointment(
+  input: CreateAppointmentInput,
+  db: Prisma.TransactionClient = prisma,
+): Promise<AppointmentView> {
   const service = await getActiveServiceOrThrow(input.serviceId);
 
   const problem = getSlotProblem(input.startsAt, service.durationMinutes, new Date());
@@ -40,7 +44,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
   }
 
   try {
-    return await prisma.appointment.create({
+    return await db.appointment.create({
       data: {
         userId: input.userId,
         serviceId: service.id,
@@ -82,6 +86,11 @@ export async function getAppointment(userId: string, id: string): Promise<Appoin
     throw HttpError.notFound("Appointment not found");
   }
   return appointment;
+}
+
+/** The appointment booked from a chat session, if any. */
+export function findAppointmentForSession(chatSessionId: string): Promise<AppointmentView | null> {
+  return prisma.appointment.findFirst({ where: { chatSessionId }, select: appointmentSelect });
 }
 
 // 23P01 is Postgres's exclusion_violation; the only exclusion constraint on appointments is

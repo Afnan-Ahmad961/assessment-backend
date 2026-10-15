@@ -1,0 +1,51 @@
+# Production stack for the VPS: Postgres, a one-off job that migrates and seeds, and the API.
+#
+#   cp .env.production.example .env.production   # then fill in real values
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# The API listens on 127.0.0.1 only. A reverse proxy on the VPS (Caddy or Nginx) terminates HTTPS
+# and forwards to it; set TRUST_PROXY_HOPS=1 so rate limiting sees the right address.
+name: appointments
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No published port: only the services below can reach the database.
+
+  migrate:
+    build:
+      context: .
+      target: build
+    env_file: .env.production
+    # Applies pending migrations, then upserts the bookable services. Safe to run on every deploy.
+    command: ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    env_file: .env.production
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:

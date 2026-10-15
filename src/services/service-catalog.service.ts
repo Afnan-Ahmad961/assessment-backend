@@ -16,8 +16,12 @@ export function listActiveServices(): Promise<ServiceView[]> {
   return prisma.service.findMany({ where: { isActive: true }, select: serviceSelect, orderBy: { name: "asc" } });
 }
 
+export function findActiveService(id: string): Promise<ServiceView | null> {
+  return prisma.service.findFirst({ where: { id, isActive: true }, select: serviceSelect });
+}
+
 export async function getActiveServiceOrThrow(id: string): Promise<ServiceView> {
-  const service = await prisma.service.findFirst({ where: { id, isActive: true }, select: serviceSelect });
+  const service = await findActiveService(id);
   if (!service) {
     throw HttpError.notFound("Service not found");
   }
